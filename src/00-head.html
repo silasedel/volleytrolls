@@ -1,0 +1,192 @@
+<title>Volley Trolls</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@400;700;900&display=swap">
+<style>
+/* Layout: one full-bleed WebGL canvas; HUD pinned to screen edges; menus are centered glass panels. */
+:root{--bg:#120b1e;--fg:#fff4fa;--panel:rgba(26,14,42,.95);--panel2:rgba(255,255,255,.07);--line:rgba(255,255,255,.14);--accent:#ff5fa2;--accent-sh:#b8336f;--gold:#ffd54a;--good:#6ee7a8;--bad:#ff5d5d;--blue:#4cc3ff;--violet:#b45cff;--muted:#c7b6d9;--display:'Baloo 2',system-ui,sans-serif;--body:'Nunito',system-ui,sans-serif;color-scheme:dark}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px}
+canvas#game{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:crosshair}
+button{font-family:var(--display);font-weight:800;font-size:17px;border:0;border-radius:14px;padding:11px 20px;background:var(--accent);color:#fff;cursor:pointer;box-shadow:0 5px 0 var(--accent-sh);transition:transform .08s;letter-spacing:.2px}
+button:hover{transform:translateY(-2px)}button:active{transform:translateY(3px);box-shadow:0 1px 0 var(--accent-sh)}
+button.alt{background:#3a2a55;box-shadow:0 5px 0 #22163a}button.alt:active{box-shadow:0 1px 0 #22163a}
+button.gold{background:var(--gold);color:#3a2a00;box-shadow:0 5px 0 #b8901a}button.gold:active{box-shadow:0 1px 0 #b8901a}
+button.sm{font-size:14px;padding:7px 12px;border-radius:10px;box-shadow:0 3px 0 var(--accent-sh)}
+button.sm.alt{box-shadow:0 3px 0 #22163a}
+button:disabled{opacity:.4;cursor:not-allowed;transform:none}
+button:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(10,6,18,.72);backdrop-filter:blur(6px);padding-block:env(safe-area-inset-top,0px) env(safe-area-inset-bottom,0px);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));z-index:30}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:26px 28px;max-width:760px;width:100%;max-height:92vh;overflow:auto;box-shadow:0 30px 80px rgba(0,0,0,.55);box-sizing:border-box}
+.panel.wide{max-width:1040px}
+h1,h2,h3{font-family:var(--display);margin:0 0 8px;text-wrap:balance;line-height:1.05}
+h1{font-size:clamp(42px,7vw,76px);background:linear-gradient(90deg,#ff5fa2,#ffd54a,#6ee7a8,#4cc3ff,#b45cff);-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:-.5px}
+h2{font-size:30px}h3{font-size:19px;margin-top:14px}
+p{margin:6px 0;line-height:1.45;max-width:62ch}
+.muted{color:var(--muted)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.stat{font-family:var(--display);font-weight:800;font-size:22px}
+.kbd{display:inline-block;border:1px solid var(--line);background:var(--panel2);border-radius:6px;padding:1px 7px;font-size:13px;font-family:var(--body);font-weight:700}
+.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px 18px;margin:14px 0;font-size:14px}
+.controls div{display:flex;gap:8px;align-items:center}
+/* HUD */
+#hud,#bonusHud{position:fixed;inset:0;pointer-events:none;z-index:10;font-family:var(--display);font-weight:800}
+.hudbox{position:absolute;background:rgba(10,6,18,.55);border:1px solid var(--line);border-radius:14px;padding:8px 14px;backdrop-filter:blur(4px)}
+#tl{top:max(14px,env(safe-area-inset-top,0px));left:max(16px,env(safe-area-inset-left,0px));font-size:18px}
+#tr{top:max(14px,env(safe-area-inset-top,0px));right:max(16px,env(safe-area-inset-right,0px));font-size:22px;color:var(--gold);text-align:right}
+#tr .sub{font-size:13px;color:var(--muted);font-family:var(--body);font-weight:700}
+#hearts{display:flex;gap:4px;margin-bottom:4px}
+.heart{width:26px;height:24px;position:relative}
+.heart svg{width:100%;height:100%;display:block}
+#levelName{font-size:15px;color:var(--muted)}#secrets{font-size:13px;color:var(--muted);font-family:var(--body)}
+#goldTimer{position:absolute;top:max(14px,env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);background:linear-gradient(180deg,#ffe27a,#f0a61f);color:#3b2600;font-size:30px;padding:6px 26px;border-radius:40px;box-shadow:0 0 30px rgba(255,213,74,.7);text-align:center;line-height:1}
+#goldTimer small{display:block;font-size:12px;letter-spacing:1px;text-transform:uppercase}
+#crosshair{position:absolute;left:50%;top:50%;width:22px;height:22px;transform:translate(-50%,-50%)}
+#crosshair:before,#crosshair:after{content:"";position:absolute;background:#fff;box-shadow:0 0 4px #000}
+#crosshair:before{left:50%;top:0;width:2px;height:100%;transform:translateX(-50%)}
+#crosshair:after{top:50%;left:0;height:2px;width:100%;transform:translateY(-50%)}
+#combo{position:absolute;left:50%;top:58%;transform:translateX(-50%);font-size:34px;color:var(--gold);text-shadow:0 3px 0 #7a4a00;animation:pop .3s}
+#hint{position:absolute;bottom:max(12px,env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);font-family:var(--body);font-weight:700;font-size:13px;color:var(--muted);background:rgba(10,6,18,.5);padding:6px 12px;border-radius:20px;white-space:nowrap}
+#dmg{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 45%,rgba(255,40,40,.75));opacity:0;transition:opacity .15s}
+#goldVignette{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 55%,rgba(255,200,60,.35));opacity:0;transition:opacity .3s}
+@keyframes pop{from{transform:translateX(-50%) scale(.4)}to{transform:translateX(-50%) scale(1)}}
+#toast{position:fixed;left:50%;bottom:16%;transform:translateX(-50%);display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none;z-index:40}
+.toastmsg{background:rgba(10,6,18,.85);border:1px solid var(--line);padding:8px 18px;border-radius:30px;font-family:var(--display);font-weight:800;font-size:17px;animation:toastin .25s;white-space:nowrap}
+.toastmsg.gold{color:var(--gold);border-color:var(--gold)}.toastmsg.good{color:var(--good)}.toastmsg.bad{color:var(--bad)}.toastmsg.violet{color:var(--violet)}
+@keyframes toastin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+/* mini inventory box */
+#minibox{position:fixed;right:max(16px,env(safe-area-inset-right,0px));top:calc(50% + 110px);transform:translateY(-50%);z-index:12;background:rgba(10,6,18,.6);border:1px solid var(--line);border-radius:14px;padding:8px;display:grid;grid-template-columns:repeat(2,34px);gap:6px;cursor:pointer;backdrop-filter:blur(4px);pointer-events:auto;transition:background .15s}
+#minibox:hover{background:rgba(60,30,90,.8)}
+#minibox .lbl{grid-column:1/-1;font-family:var(--display);font-weight:800;font-size:11px;color:var(--muted);text-align:center;letter-spacing:1px}
+.tile{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:800;font-size:12px;color:#fff;text-shadow:0 1px 2px #000;position:relative;border:2px solid rgba(255,255,255,.25);box-sizing:border-box}
+.tile .n{position:absolute;right:-4px;bottom:-5px;background:#fff;color:#000;font-size:10px;border-radius:8px;padding:0 4px;line-height:14px}
+.tile.big{width:54px;height:54px;font-size:15px;border-radius:12px}
+/* boosters */
+#boosterHud{position:fixed;left:max(16px,env(safe-area-inset-left,0px));bottom:max(16px,env(safe-area-inset-bottom,0px));display:flex;gap:10px;z-index:12;pointer-events:auto}
+.booster{display:flex;flex-direction:column;align-items:center;gap:3px;background:rgba(10,6,18,.65);border:2px solid var(--line);border-radius:14px;padding:8px 10px;min-width:74px;cursor:pointer;font-family:var(--display);font-weight:800;font-size:12px;transition:transform .1s,border-color .15s;color:var(--fg)}
+.booster:hover{transform:translateY(-2px)}.booster.active{border-color:var(--gold);box-shadow:0 0 18px rgba(255,213,74,.6)}
+.booster.empty{opacity:.4;cursor:default}.booster .ic{width:30px;height:30px;border-radius:50%}.booster .ct{font-size:16px}
+.booster .k{font-size:10px;color:var(--muted)}
+/* bonus hud */
+#bTimer{position:absolute;top:max(14px,env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);font-size:52px;color:#fff;text-shadow:0 4px 0 #0a3a1a,0 0 20px rgba(0,0,0,.5);line-height:1}
+#bTimer.low{color:var(--bad)}
+#bTl{top:max(14px,env(safe-area-inset-top,0px));left:max(16px,env(safe-area-inset-left,0px));font-size:18px}
+#bTr{top:max(14px,env(safe-area-inset-top,0px));right:max(16px,env(safe-area-inset-right,0px));font-size:24px;color:var(--gold);text-align:right}
+#penalties{display:flex;gap:8px;margin-top:6px}
+.pen{width:30px;height:30px;border-radius:8px;border:3px solid var(--bad);display:flex;align-items:center;justify-content:center;color:var(--bad);font-size:20px;opacity:.35}
+.pen.hit{opacity:1;background:var(--bad);color:#fff;animation:pop .3s}
+#bMsg{position:absolute;left:50%;top:38%;transform:translateX(-50%);font-size:40px;text-shadow:0 4px 0 rgba(0,0,0,.4);white-space:nowrap}
+#bHint{position:absolute;bottom:max(14px,env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);font-family:var(--body);font-weight:700;font-size:14px;background:rgba(10,6,18,.5);padding:6px 14px;border-radius:20px;white-space:nowrap}
+/* store */
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 14px}
+.tab{background:var(--panel2);color:var(--fg);box-shadow:none;border:1px solid var(--line);padding:8px 14px;font-size:15px}
+.tab.on{background:var(--accent);border-color:transparent}
+.storegrid{display:grid;grid-template-columns:minmax(220px,300px) 1fr;gap:18px}
+@media (max-width:720px){.storegrid{grid-template-columns:1fr}}
+#preview{width:100%;aspect-ratio:3/4;max-width:300px;background:radial-gradient(circle at 50% 30%,#3b2a5a,#14101f);border-radius:16px;display:block}
+.cat{margin:8px 0 14px}
+.cat h3{margin:0 0 6px;font-size:16px;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+.items{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.item{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.item.eq{border-color:var(--good);box-shadow:inset 0 0 0 1px var(--good)}
+.item .sw{height:26px;border-radius:8px;border:2px solid rgba(255,255,255,.2)}
+.item .nm{font-weight:900;font-size:13px;line-height:1.2}
+.item .pr{font-family:var(--display);font-weight:800;color:var(--gold);font-size:14px}
+.item .ds{font-size:12px;color:var(--muted);line-height:1.3}
+.inv{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.card{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:12px;min-width:0}
+.card.rare{border-color:var(--gold)}.card.legend{border-color:var(--violet);box-shadow:0 0 18px rgba(180,92,255,.35)}
+.card dl{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:12px;margin:8px 0}
+.card dt{color:var(--muted)}.card dd{margin:0;font-weight:700}
+.badge{display:inline-block;font-size:11px;font-weight:900;letter-spacing:1px;text-transform:uppercase;padding:2px 8px;border-radius:20px;background:var(--panel2);border:1px solid var(--line)}
+.badge.rare{color:var(--gold);border-color:var(--gold)}.badge.legend{color:var(--violet);border-color:var(--violet)}.badge.unc{color:var(--good);border-color:var(--good)}
+.craftrow{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px;flex-wrap:wrap}
+.craftrow .plus{font-family:var(--display);font-size:22px;color:var(--muted)}
+.craftrow .have{font-size:12px;color:var(--muted)}
+.craftrow .have.ok{color:var(--good)}
+#stableView{width:100%;height:300px;border-radius:16px;background:linear-gradient(#8fd3ff,#cfeeff 60%,#5c9b3a 60%);display:block}
+.meter{height:14px;background:var(--panel2);border-radius:10px;overflow:hidden;border:1px solid var(--line)}
+.meter i{display:block;height:100%;background:linear-gradient(90deg,#ff5fa2,#ffd54a);transition:width .4s}
+.lvls{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:14px 0}
+.summary div{background:var(--panel2);border-radius:12px;padding:10px;text-align:center}
+.summary b{display:block;font-family:var(--display);font-size:26px;color:var(--gold)}
+.summary span{font-size:12px;color:var(--muted)}
+.foot{font-size:12px;color:var(--muted);margin-top:12px}
+#keysHud{display:flex;gap:4px;margin-top:4px}
+.shoe{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:15px;line-height:1;color:#5a4a20;background:rgba(255,255,255,.08);border:2px solid #6a5a30;transform:rotate(180deg)}
+.shoe.on{color:#3b2600;background:linear-gradient(180deg,#ffe27a,#f0a61f);border-color:#ffd54a;box-shadow:0 0 10px rgba(255,213,74,.7)}
+#minimap{position:absolute;top:calc(max(14px,env(safe-area-inset-top,0px)) + 74px);right:max(16px,env(safe-area-inset-right,0px));width:160px;height:160px;border-radius:14px;border:1px solid var(--line);background:rgba(10,6,18,.55)}
+#mud{position:absolute;inset:0;opacity:0;transition:opacity .5s;background:radial-gradient(circle at 30% 40%,rgba(80,50,20,.85) 0 9%,transparent 10%),radial-gradient(circle at 70% 60%,rgba(90,58,26,.8) 0 7%,transparent 8%),radial-gradient(circle at 55% 30%,rgba(70,45,18,.75) 0 5%,transparent 6%)}
+#bigmap{position:fixed;inset:0;z-index:25;display:flex;align-items:center;justify-content:center;background:rgba(10,6,18,.8);pointer-events:none}
+#bigmap canvas{max-width:92vmin;max-height:92vmin;border-radius:16px;border:1px solid var(--line)}
+#bigmap .cap{position:absolute;bottom:max(16px,env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);font-family:var(--display);font-weight:800;color:var(--muted)}
+.credits{font-size:13px;line-height:1.5}.credits li{margin:4px 0}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+<canvas id="game"></canvas>
+
+<div id="hud" hidden>
+  <div class="hudbox" id="tl"><div id="hearts"></div><div id="levelName"></div><div id="secrets"></div><div id="keysHud"></div></div>
+  <canvas id="minimap" width="320" height="320"></canvas>
+  <div class="hudbox" id="tr"><div id="coins">0</div><div class="sub">coins</div></div>
+  <div id="goldTimer" hidden><small>Golden ball</small><span id="goldT">10.0</span></div>
+  <div id="crosshair"></div>
+  <div id="combo" hidden></div>
+  <div id="hint"><span class="kbd">WASD</span>/<span class="kbd">↑↓</span> move · <span class="kbd">←→</span> turn · mouse aim · click or <span class="kbd">Space</span> shoot · <span class="kbd">E</span> push walls · <span class="kbd">M</span> map · <span class="kbd">N</span> music · <span class="kbd">Tab</span> store</div>
+  <div id="goldVignette"></div>
+  <div id="mud"></div>
+  <div id="dmg"></div>
+</div>
+<div id="minibox" hidden></div>
+<div id="bigmap" hidden><canvas id="bigmapC" width="900" height="900"></canvas><div class="cap">Explored map · M to close</div></div>
+<div id="boosterHud" hidden></div>
+<div id="toast"></div>
+
+<div id="bonusHud" hidden>
+  <div id="bTimer">30</div>
+  <div class="hudbox" id="bTl"><div>Fences cleared: <span id="bCleared">0</span></div><div id="penalties"></div><div style="font-size:13px;color:var(--muted);margin-top:4px">Streak <span id="bStreak">0</span></div></div>
+  <div class="hudbox" id="bTr"><div>+<span id="bCoins">0</span></div><div style="font-size:12px;color:var(--muted);font-family:var(--body)" id="bSaddle"></div></div>
+  <div id="bMsg"></div>
+  <div id="bHint"><span class="kbd">Space</span> / <span class="kbd">↑</span> jump · <span class="kbd">←</span> <span class="kbd">→</span> change lane · <span class="kbd">1</span> <span class="kbd">2</span> or click boosters</div>
+</div>
+
+<div class="screen" id="title">
+  <div class="panel">
+    <h1>Volley Trolls</h1>
+    <p style="font-size:18px">A show-jumper with a volleyball cannon arm, a dungeon full of rainbow trolls, and a horse waiting at the end of every level.</p>
+    <div class="controls">
+      <div><span class="kbd">W A S D</span> / <span class="kbd">↑ ↓</span> move</div><div><span class="kbd">← →</span> turn · <span class="kbd">Mouse</span> look</div><div><span class="kbd">Click</span> / <span class="kbd">Space</span> serve</div>
+      <div><span class="kbd">Shift</span> sprint</div><div><span class="kbd">E</span> push cracked walls</div>
+      <div><span class="kbd">Tab</span> / <span class="kbd">Esc</span> store &amp; pause</div><div><span class="kbd">M</span> map · <span class="kbd">N</span> music</div><div><span class="kbd">Space</span> jump (bonus arena)</div>
+    </div>
+    <div class="row" id="titleButtons"></div>
+    <p class="foot">Desktop, keyboard and mouse. Click Play, then click the game to lock the mouse. Gold volleyballs explode whoever they hit and zap the nearest troll too. Cracked walls hide saddles.</p>
+  </div>
+</div>
+
+<div class="screen" id="levelIntro" hidden><div class="panel"><div class="muted" style="font-family:var(--display);font-weight:800;letter-spacing:2px;text-transform:uppercase" id="liNum">Level 1</div><h2 id="liName"></h2><p id="liDesc"></p><div class="row" style="margin-top:14px"><button id="liGo">Click to enter</button><button class="alt" id="liStore">Store first</button></div></div></div>
+
+<div class="screen" id="pause" hidden><div class="panel wide">
+  <div class="row" style="justify-content:space-between"><h2 id="pauseTitle">Store</h2><div class="row"><div class="stat" style="color:var(--gold)"><span id="storeCoins">0</span> coins</div><button class="alt sm musicBtn">Music</button><button id="resumeBtn">Resume</button></div></div>
+  <div class="tabs"><button class="tab on" data-tab="shop">Shop</button><button class="tab" data-tab="inv">Inventory</button><button class="tab" data-tab="craft">Crafting</button><button class="tab" data-tab="stable" id="stableTab" hidden>Stable</button></div>
+  <div id="tab-shop" class="storegrid"><div><canvas id="preview"></canvas><div class="row" style="margin-top:8px"><button class="tab sm on" data-pv="body">Full outfit</button><button class="tab sm" data-pv="face">Close-up</button></div><p class="muted" style="font-size:12px">Your rider in her current outfit. Mirrors in the dungeon show the same thing.</p></div><div id="shopList"></div></div>
+  <div id="tab-inv" hidden></div>
+  <div id="tab-craft" hidden></div>
+  <div id="tab-stable" hidden></div>
+</div></div>
+
+<div class="screen" id="death" hidden><div class="panel"><h2 style="color:var(--bad)">Knocked out!</h2><p id="deathText"></p><div class="row" style="margin-top:14px"><button id="respawnBtn">Respawn at checkpoint</button><button class="alt" id="retryBtn">Restart level</button><button class="alt" id="deathStore">Store</button></div></div></div>
+
+<div class="screen" id="levelClear" hidden><div class="panel"><div class="muted" style="font-family:var(--display);font-weight:800;letter-spacing:2px;text-transform:uppercase">Level clear</div><h2 id="lcName"></h2><div class="summary" id="lcStats"></div><p>Bonus arena unlocked. You're on the horse for 30 seconds. Jump everything. Three penalties and the round ends.</p><div class="row" style="margin-top:12px"><button class="gold" id="bonusBtn">Ride the bonus arena</button><button class="alt" id="lcStore">Store</button></div></div></div>
+
+<div class="screen" id="bonusEnd" hidden><div class="panel"><div class="muted" style="font-family:var(--display);font-weight:800;letter-spacing:2px;text-transform:uppercase">Bonus arena</div><h2 id="beTitle">Round over</h2><div class="summary" id="beStats"></div><div class="row" style="margin-top:12px"><button id="beNext">Continue</button><button class="alt" id="beStore">Store</button></div></div></div>
+
+<div class="screen" id="win" hidden><div class="panel"><h1 style="font-size:52px">You cleared the keep!</h1><p>The Violet Troll King is volleyball paste. Your horse is waiting in the stable, and every crafted item you carry can now be used to pamper her.</p><div class="summary" id="winStats"></div><div class="row" style="margin-top:12px"><button class="gold" id="winStable">Go to the stable</button><button class="alt" id="winReplay">Replay from level 1</button></div></div></div>
+
+<div class="screen" id="credits" hidden><div class="panel"><h2>Sound credits</h2><div class="credits"><p>Every sound in Volley Trolls is a real recording or a composed track from these open-source games. Thank you to their creators.</p><ul>
+<li><b>0 A.D.</b> by Wildfire Games, wildfiregames.com. Horse neighs, snorts and hoofbeats, footsteps, stone gate, impacts, collapse, victory and defeat stings, birdsong, and the music tracks "0 8Bit Bonus Track", "Calm Before the Storm", "Harvest Festival" and "An Old Warhorse Goes to Pasture" from the 0 A.D. soundtrack (Wildfire Games composers). License CC BY-SA 3.0, creativecommons.org/licenses/by-sa/3.0.</li>
+<li><b>Battle for Wesnoth</b>, wesnoth.org. Troll, ogre and goblin voices, wolf growls (troll roars), rider hurt voice, mud, explosion, lightning, gold coins, magic, fanfare, horn, war drums, horse canter. License GNU GPL v2 or later.</li>
+<li><b>Blobby Volley 2</b>, blobby.sourceforge.net. Volleyball hit and referee whistle. License GNU GPL v2.</li>
+<li><b>FoFiX (Frets on Fire X)</b>. Crowd cheers and clap. License GNU GPL v2.</li>
+<li>Face photo used with the owner's permission. Game code and 3D models built for this game.</li></ul></div><div class="row" style="margin-top:12px"><button id="creditsBack">Back</button></div></div></div>
